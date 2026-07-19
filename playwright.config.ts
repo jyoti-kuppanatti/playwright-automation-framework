@@ -5,7 +5,7 @@ export default defineConfig({
 
  use: {
     baseURL: ENV.BASE_URL,
-    headless: false,
+    headless: !!process.env.CI,
     screenshot: 'only-on-failure',
     trace: 'on-first-retry'
   },
