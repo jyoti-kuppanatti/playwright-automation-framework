@@ -1,3 +1,4 @@
+// Base page for all page objects
 import { Page } from '@playwright/test';
 
 export class BasePage {
