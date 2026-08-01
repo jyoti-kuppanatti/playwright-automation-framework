@@ -2,7 +2,7 @@
 
 Site under test: https://opensource-demo.orangehrmlive.com (demo credentials: `Admin` / `admin123`)
 
-Generated from live exploration of PIM > Add Employee, PIM > Employee List, and an employee's detail record. 60 scenarios total: 20 Add Employee, 21 Search Employee, 19 View/Edit Employee.
+Generated from live exploration of PIM > Add Employee, PIM > Employee List, and an employee's detail record. 67 scenarios total: 20 Add Employee, 28 Search Employee, 19 View/Edit Employee.
 
 ---
 
@@ -40,34 +40,76 @@ Generated from live exploration of PIM > Add Employee, PIM > Employee List, and 
 
 ## 2. Search Employee (PIM > Employee List)
 
+Confirmed live: search form fields are Employee Name (autocomplete), Employee Id, Employment Status, Include, Supervisor Name (autocomplete), Job Title, Sub Unit — no Nationality filter exists on this screen. Employment Status options: Freelance, Full-Time Contract, Full-Time Permanent, Full-Time Probation, Part-Time Contract, Part-Time Internship. Include options: Current Employees Only (default), Current and Past Employees, Past Employees Only. Sub Unit is a flattened hierarchical single-select dropdown, not a checkbox tree.
+
+**Environment caveat**: this is a public, shared demo instance — other anonymous users continuously add/edit/delete employees. Automated assertions should avoid hardcoding exact total record counts, specific employee names, or exact page counts; prefer relative assertions (e.g. "count changes after filtering") or seed/verify test data via Add Employee immediately before searching for it.
+
+### A. Employee Name search & autocomplete
+
 | ID | Title | Type | Preconditions | Steps | Expected Result |
 |---|---|---|---|---|---|
-| SEARCH-01 | Search by exact Employee Name | Positive | At least one known employee exists | 1. Enter full name in Employee Name 2. Click Search | Table shows only matching employee(s); record count updates accordingly |
-| SEARCH-02 | Autocomplete suggestions for partial name | Positive | — | 1. Type a partial name in Employee Name 2. Observe dropdown 3. Select a suggestion 4. Search | Matching-name suggestions appear as you type; selecting one and searching returns that employee |
-| SEARCH-03 | Search by Employee ID only | Positive | A known Employee Id exists | 1. Enter the ID in Employee Id field 2. Search | Exactly one matching record returned |
-| SEARCH-04 | Filter by Employment Status | Positive | — | 1. Select a status (e.g. "Full-Time Permanent") from dropdown 2. Search | Only employees with that status are listed |
-| SEARCH-05 | Filter by Include = "Current and Past Employees" | Positive | At least one terminated/past employee exists | 1. Change Include dropdown to that option 2. Search | Both current and terminated employees appear in results |
-| SEARCH-07 | Filter by Supervisor Name | Positive | A supervisor with direct reports exists | 1. Enter/select Supervisor Name 2. Search | Only employees reporting to that supervisor are returned |
-| SEARCH-08 | Filter by Job Title | Positive | — | 1. Select a Job Title from dropdown 2. Search | Only employees with that job title returned |
-| SEARCH-09 | Filter by Sub Unit | Positive | — | 1. Select a Sub Unit from dropdown 2. Search | Only employees in that sub unit returned |
-| SEARCH-10 | Combine multiple filters | Positive | — | 1. Set Employee Name/Status/Sub Unit together 2. Search | Results satisfy the AND of all selected filters simultaneously |
-| SEARCH-11 | Reset button clears filters | Positive | Filters previously set | 1. Fill several filters 2. Click Reset | All fields return to default ("-- Select --" / "Current Employees Only" / empty text); result list reverts to the full unfiltered list |
-| SEARCH-12 | Pagination navigation | Positive | Result set spans multiple pages (verified: default list has 116 records / 3 pages) | 1. Perform a broad search or view the default list 2. Click page 2, then page 3 | Different records shown per page; active page indicator updates; next-page arrow works and disables appropriately at the last page |
-| SEARCH-13 | Search for a non-existent name | Negative (verified) | — | 1. Enter a name that matches no record (e.g. "zzzznotexist") 2. Search | "No Records Found" toast appears plus an inline "No Records Found" line; table shows column headers only, no rows |
-| SEARCH-14 | Search by non-existent Employee ID | Negative | — | 1. Enter an ID not in the system 2. Search | "No Records Found" behavior identical to SEARCH-13 |
-| SEARCH-15 | Injection-style input in Employee Name | Negative | — | 1. Enter a string like `' OR '1'='1` (choosing a string that does NOT collide with a real record, since e.g. `@#$%` legitimately matches an existing employee) 2. Search | No application error/crash; either zero results or safely-escaped literal-text matching only |
-| SEARCH-16 | Whitespace-only search term | Edge | — | 1. Enter only spaces into Employee Name 2. Search | Verify whether this behaves as an empty search (returns full list) or as a literal (likely no results) |
-| SEARCH-17 | Autocomplete with no matches | Edge | — | 1. Type a name fragment with zero matches | Typeahead shows no suggestions / appropriate empty state, without blocking manual full-text search |
-| SEARCH-18 | Case-insensitive name search | Edge | Known employee name in mixed case | 1. Search using all-lowercase version of an existing name 2. Search again using all-uppercase | Both return the same matching record(s) |
-| SEARCH-19 | Very long string in Employee Name field | Edge | — | 1. Paste a 500+ character string into Employee Name 2. Search | No UI break; input is handled or truncated gracefully, and search still completes (even if returning no results) |
-| SEARCH-20 | Large result set with only status filter | Edge | — | 1. Select only an Employment Status, leave name blank 2. Search | Record count text and pagination update correctly for the larger filtered set |
-| SEARCH-21 | Re-search with changed filters without clicking Reset | Edge | A prior search was already run | 1. Run a search 2. Change one filter value 3. Click Search again (no Reset in between) | Results reflect only the latest filter combination — no stale results from the previous search remain |
+| ESRCH-01 | Search by exact full Employee Name, selected from autocomplete | Positive | At least one known employee exists | 1. Type a known employee's name in Employee Name until suggestions appear 2. Click the matching suggestion 3. Click Search | Employee Name field shows the full selected name; results table shows exactly that employee |
+| ESRCH-02 | Search by partial name typed manually (no suggestion selected) | Positive (verified) | — | 1. Type a partial/substring of a known employee's last name 2. Press Escape to dismiss the dropdown without selecting anything 3. Click Search | Substring match still works server-side; the matching employee(s) are returned even though no autocomplete suggestion was clicked |
+| ESRCH-03 | Autocomplete shows live suggestions while typing | Positive (verified) | — | 1. Type 2+ characters of a common name fragment (e.g. "am") | Dropdown shows a brief "Searching...." state, then up to 5 matching name suggestions |
+| ESRCH-04 | Autocomplete with zero matches | Edge (verified) | — | 1. Type a fragment guaranteed not to match any employee | Dropdown itself displays a "No Records Found" option/state; typing is not blocked and manual Search still works |
+| ESRCH-05 | Case-insensitive name search | Edge | Known employee name in mixed case | 1. Search using an all-lowercase version of a known employee's name 2. Repeat with all-uppercase | Both return the identical matching record(s) |
+| ESRCH-06 | Search for a name with no matching employee | Negative | — | 1. Enter a clearly non-existent name (e.g. "zzzqqqnonexistentxyz999") 2. Click Search | "No Records Found" toast (bottom-left) appears; inline "No Records Found" text shown above the table; table shows only column headers, zero rows |
+| ESRCH-07 | Whitespace-only Employee Name | Edge | — | 1. Enter only spaces into Employee Name 2. Click Search | Verify whether this is treated as an empty filter (returns the full/default list) or as literal whitespace (likely 0 results) — not yet confirmed live |
+| ESRCH-08 | Very long string in Employee Name | Edge | — | 1. Paste a 500+ character string into Employee Name 2. Click Search | No client crash/UI break; search completes (likely 0 results); confirm whether input is truncated by a maxlength attribute |
+| ESRCH-09 | Injection-style / special-character input in Employee Name | Negative | — | 1. Enter a string like `' OR '1'='1` or `<script>alert(1)</script>` (choose a string that won't coincidentally match a real record) 2. Click Search | No application error, no script execution/XSS; result is either 0 rows or a safe literal-text no-match |
+
+### B. Employee Id search
+
+| ID | Title | Type | Preconditions | Steps | Expected Result |
+|---|---|---|---|---|---|
+| ESRCH-10 | Search by exact Employee Id | Positive (verified) | A known Employee Id exists | 1. Note a real Employee Id from the table (e.g. the first row's Id) 2. Enter that exact value into Employee Id 3. Click Search | Exactly one row is returned, matching that Id |
+| ESRCH-11 | Search by partial/substring Employee Id | Negative (verified) | — | 1. Enter only the first character/substring of a real Employee Id 2. Click Search | Zero results — Employee Id search requires an exact match; a substring does NOT return the full record (confirmed behaviorally different from Employee Name, which does substring-match) |
+| ESRCH-12 | Search by non-existent Employee Id | Negative | — | 1. Enter an Id string not present in the system 2. Click Search | Same "No Records Found" behavior as ESRCH-06 |
+| ESRCH-13 | Non-numeric / alphanumeric text in Employee Id | Edge (verified) | — | 1. Type letters (e.g. "abc") into Employee Id 2. Click Search | Field accepts the text with no client-side format validation; search executes (likely 0 results unless a record actually has that literal Id, which is possible here since custom Ids are free-text) |
+
+### C. Employment Status filter
+
+| ID | Title | Type | Preconditions | Steps | Expected Result |
+|---|---|---|---|---|---|
+| ESRCH-14 | Filter by each Employment Status option | Positive (verified options) | — | 1. Open Employment Status dropdown, confirm options: Freelance, Full-Time Contract, Full-Time Permanent, Full-Time Probation, Part-Time Contract, Part-Time Internship 2. Select one 3. Click Search | Only employees with that exact status are listed; record count updates |
+| ESRCH-15 | Employment Status only, no other filters | Edge | — | 1. Select a status, leave all else blank/default 2. Click Search | Results and pagination correctly reflect the filtered subset (may still span multiple pages) |
+
+### D. Include filter
+
+| ID | Title | Type | Preconditions | Steps | Expected Result |
+|---|---|---|---|---|---|
+| ESRCH-16 | Default Include value | Positive (verified) | — | 1. Open Employee List fresh (no filters touched) | Include defaults to "Current Employees Only"; results exclude terminated employees |
+| ESRCH-17 | Include = "Current and Past Employees" | Positive | At least one terminated/past employee exists | 1. Change Include to "Current and Past Employees" 2. Click Search | Both active and terminated employees appear in results |
+| ESRCH-18 | Include = "Past Employees Only" | Positive (label verified) | At least one terminated employee exists | 1. Change Include to "Past Employees Only" 2. Click Search | Only terminated/past employees are returned; no currently active employees appear |
+
+### E. Supervisor Name, Job Title, Sub Unit filters
+
+| ID | Title | Type | Preconditions | Steps | Expected Result |
+|---|---|---|---|---|---|
+| ESRCH-19 | Filter by Supervisor Name (autocomplete) | Positive | A supervisor with direct reports exists | 1. Type into Supervisor Name, select a suggestion (same autocomplete pattern as Employee Name) 2. Click Search | Only employees reporting to that supervisor are returned |
+| ESRCH-20 | Filter by Job Title | Positive (options verified) | — | 1. Select a Job Title from the dropdown 2. Click Search | Only employees with that exact job title are returned |
+| ESRCH-21 | Filter by Sub Unit (top-level org unit) | Positive (verified structure) | — | 1. Select a top-level Sub Unit (e.g. "OrangeHRM") 2. Click Search | Employees under that unit and its child units are returned (verify live whether parent selection includes descendants or only direct members) |
+| ESRCH-22 | Filter by Sub Unit (nested/child unit) | Positive | — | 1. Select a nested child unit (e.g. "Quality Assurance" under Engineering > Development) 2. Click Search | Only employees directly in that specific sub-unit are returned |
+
+### F. Combined filters, Reset, pagination
+
+| ID | Title | Type | Preconditions | Steps | Expected Result |
+|---|---|---|---|---|---|
+| ESRCH-23 | Combine Employee Name + Employment Status + Sub Unit | Positive | — | 1. Set all three filters together 2. Click Search | Results satisfy the AND of all three filters simultaneously |
+| ESRCH-24 | Combined filters with no matching intersection | Negative | — | 1. Choose a combination guaranteed to have zero overlap (e.g. a name that exists only under one status, paired with a different status) 2. Click Search | "No Records Found" behavior, same as ESRCH-06, even though each filter individually would have matches |
+| ESRCH-25 | Reset clears all filters to default | Positive (verified) | — | 1. Set Employee Name, Employee Id, Employment Status, Include all to non-default values 2. Click Reset | Employee Name/Id become empty; Employment Status/Job Title/Sub Unit return to "-- Select --"; Include returns to "Current Employees Only"; result list reverts to the default unfiltered view |
+| ESRCH-26 | Re-search with a changed filter, without clicking Reset in between | Edge | A prior search was already run | 1. Run a search with Filter A 2. Change to Filter B (no Reset) 3. Click Search again | Results reflect only Filter B — no stale rows from the Filter A search remain |
+| ESRCH-27 | Pagination navigates between pages | Positive (verified) | Result set spans multiple pages | 1. View default/unfiltered list 2. Click page "2", then page "3" | Each page shows a different set of rows; the active page indicator updates; the next-page chevron only appears when a further page exists (verify exact hide-vs-disable mechanic during automation) |
+| ESRCH-28 | Record-count text reflects current filter/page state | Positive | — | 1. Perform any search | Text of the form "(N) Records Found" appears above the table and matches the actual number of matching rows across all pages |
 
 ### To verify (Search Employee)
 
 | ID | Title | Notes |
 |---|---|---|
-| SEARCH-06 | Filter by Include = past-only option | Only terminated/past employees expected once the past-employees-only option is selected; exact dropdown label was not confirmed live |
+| ESRCH-07 | Whitespace-only Employee Name | Confirm whether this is treated as an empty filter (returns full list) or as literal whitespace (likely 0 results) |
+| ESRCH-08 | Very long string in Employee Name | Confirm whether the input is truncated by a maxlength attribute |
+| ESRCH-21 | Sub Unit parent-selection scope | Confirm whether selecting a top-level Sub Unit includes descendant units' employees or only direct members |
+| ESRCH-27 | Pagination chevron mechanic | Confirm whether the next/prev page controls are hidden or disabled at the first/last page |
 
 ---
 
@@ -104,5 +146,5 @@ Generated from live exploration of PIM > Add Employee, PIM > Employee List, and 
 
 ## Summary
 
-- 20 scenarios for Add Employee (18 direct + 2 to-verify), 21 for Employee Search (20 direct + 1 to-verify), 19 for View/Edit (16 direct + 3 to-verify) — 60 total.
+- 20 scenarios for Add Employee (18 direct + 2 to-verify), 28 for Employee Search (24 direct + 4 to-verify), 19 for View/Edit (16 direct + 3 to-verify) — 67 total.
 - "To verify" items were not directly confirmed via live exploration and should be spot-checked manually, or treated as an early discovery step during automation, before being hard-coded into assertions.
