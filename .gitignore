@@ -9,3 +9,6 @@ node_modules/
 .env.*
 !.env.example
 !.env.qa
+
+# Claude Code local settings (personal, machine-specific overrides)
+.claude/settings.local.json
