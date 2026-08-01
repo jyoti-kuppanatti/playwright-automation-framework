@@ -1,5 +1,5 @@
 ---
-name: test-writer
+name: testcase-writer
 description: Explores a given website and generates QA test case scenarios, then converts them into automated test code (Selenium/Java or Playwright/TypeScript) once reviewed
 model: sonnet
 tools:
