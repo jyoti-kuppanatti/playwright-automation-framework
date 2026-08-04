@@ -16,6 +16,42 @@ A UI test automation framework built with **Playwright** and **TypeScript**, fol
 ## Coming Soon
 - AI-assisted testing enhancements (test generation, maintenance, and debugging support)
 
+## Folder Structure
+```
+playwrightWithJavaScript/
+├── .github/
+│   └── workflows/
+│       └── playwright.yml      # CI pipeline — runs tests on push/PR
+├── config/
+│   └── env.ts                  # Environment configuration
+├── docs/
+│   └── test-scenarios-pim.md   # QA test case scenarios (PIM module)
+├── fixtures/
+│   └── baseFixture.ts          # Custom Playwright fixtures
+├── pages/                      # Page Object Model classes
+│   ├── BasePage.ts
+│   ├── LoginPage.ts
+│   ├── DashboardPage.ts
+│   ├── AddEmployeePage.ts
+│   ├── EmployeeListPage.ts
+│   └── PersonalDetailsPage.ts
+├── test-data/
+│   ├── models/
+│   │   └── User.ts             # Type definitions for test data
+│   └── users.json              # Test data fixtures
+├── tests/
+│   ├── api/
+│   │   └── loginApi.spec.ts    # API tests
+│   ├── pim/
+│   │   ├── addEmployee.spec.ts
+│   │   └── searchEmployee.spec.ts
+│   └── login.spec.ts
+├── .env.example                 # Sample environment variables
+├── .env.qa                      # QA environment variables
+├── playwright.config.ts         # Playwright configuration
+└── package.json
+```
+
 ## Getting Started
 ```bash
 npm install
